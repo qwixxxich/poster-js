@@ -19,9 +19,12 @@ body {
 #first {
     position: relative;
     display: block;
-    width: min(100%, 1470px);
+    width: 100%;
     margin: 0 auto;
     padding-bottom: 0;
+    --x-k: 1;
+    --y-k: 1;
+    --size-k: 1;
 }
 
 #first picture {
@@ -47,7 +50,6 @@ body {
 
 .fruit {
     position: absolute;
-    width: 6.12%;
     height: auto;
     pointer-events: auto;
     cursor: pointer;
@@ -57,33 +59,33 @@ body {
 }
 
 .fruit:nth-child(1) {
-    left: 19%;
-    top: 20%;
-    width: 6.12%;
+    left: calc(19% * var(--x-k));
+    top: calc(20% * var(--y-k));
+    width: calc(6.12% * var(--size-k));
 }
 
 .fruit:nth-child(2) {
-    left: 33%;
-    top: 32%;
-    width: 6.12%;
+    left: calc(33% * var(--x-k));
+    top: calc(32% * var(--y-k));
+    width: calc(6.12% * var(--size-k));
 }
 
 .fruit:nth-child(3) {
-    left: 52%;
-    top: 24%;
-    width: 6.12%;
+    left: calc(52% * var(--x-k));
+    top: calc(24% * var(--y-k));
+    width: calc(6.12% * var(--size-k));
 }
 
 .fruit:nth-child(4) {
-    left: 64%;
-    top: 37%;
-    width: 4.76%;
+    left: calc(64% * var(--x-k));
+    top: calc(37% * var(--y-k));
+    width: calc(4.76% * var(--size-k));
 }
 
 .fruit:nth-child(5) {
-    left: 76%;
-    top: 22%;
-    width: 7.62%;
+    left: calc(76% * var(--x-k));
+    top: calc(22% * var(--y-k));
+    width: calc(7.62% * var(--size-k));
 }
 
 .fruit.is-selected {
@@ -108,18 +110,18 @@ body {
 
 #earth {
     position: absolute;
-    left: 9.2%;
-    top: 33.4%;
-    width: 87.9%;
+    left: calc(9.2% * var(--x-k));
+    top: calc(33.4% * var(--y-k));
+    width: calc(87.9% * var(--size-k));
     filter: drop-shadow(0 0 250px #00AAFF);
     pointer-events: none;
 }
 
 #scene-button {
     position: absolute;
-    left: 45.1%;
-    top: 71.9%;
-    width: 8.7%;
+    left: calc(45.1% * var(--x-k));
+    top: calc(71.9% * var(--y-k));
+    width: calc(8.7% * var(--size-k));
     z-index: 3;
     padding: 0;
     border: 0;
@@ -198,4 +200,20 @@ h1 {
     max-width: 100%;
     margin-top: 16px;
     border-radius: 12px;
+}
+
+@media (max-width: 1366px) {
+    #first {
+        --x-k: 0.9804144361;
+        --y-k: 1.0078016342;
+        --size-k: 1.329496305;
+    }
+}
+
+@media (max-width: 440px) {
+    #first {
+        --x-k: 0.7861329369;
+        --y-k: 1.0003854081;
+        --size-k: 3.3437826541;
+    }
 }
