@@ -8,11 +8,37 @@
 </head>
 <body>
     <div class="section" id="first">
-        <div></div>
-        <video id="video" muted playsinline preload="metadata">
-            <source src="assets/anim.mp4" type="video/mp4" />
-        </video>
+        <div id="fruits-layer" aria-label="Flying fruits">
+            <img class="fruit" src="assets/fruit/f1.png" alt="Fruit 1">
+            <img class="fruit" src="assets/fruit/f2.png" alt="Fruit 2">
+            <img class="fruit" src="assets/fruit/f3.png" alt="Fruit 3">
+            <img class="fruit" src="assets/fruit/f4.png" alt="Fruit 4">
+            <img class="fruit" src="assets/fruit/f5.png" alt="Fruit 5">
+        </div>
+        <picture>
+            <source media="(max-width: 440px)" srcset="assets/section1_phone.svg">
+            <img id="section1-bg" src="assets/section1.svg" alt="">
+        </picture>
+        <img id="earth" src="assets/earth.svg" alt="">
+        <button id="scene-button" type="button" aria-label="Scene button" aria-pressed="false" disabled>
+            <img id="scene-button-image" src="assets/buttonoff.svg" alt="">
+        </button>
     </div>
+    <main class="generator">
+        <form id="prompt-form" class="prompt-form">
+            <label for="prompt-input"></label>
+            <input
+                id="prompt-input"
+                name="prompt"
+                type="text"
+                placeholder="gray tabby cat hugging an otter with orange scarf"
+                required
+            />
+            <button type="submit">Generate</button>
+        </form>
+        <p id="status" class="status"></p>
+        <img id="result-image" class="result-image" alt="Generated image" hidden />
+    </main>
 <script src="script.js"></script>
 </body>
 </html>
