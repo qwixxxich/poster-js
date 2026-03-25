@@ -212,9 +212,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const getTiltAxisValue = (event) => {
         const gamma = typeof event.gamma === 'number' ? event.gamma : 0
+        const beta = typeof event.beta === 'number' ? event.beta : 0
         const angle = ((getScreenAngle() % 360) + 360) % 360
 
-        if (angle === 180 || angle === 270) {
+        if (angle === 90) {
+            return beta
+        }
+
+        if (angle === 270) {
+            return -beta
+        }
+
+        if (angle === 180) {
             return -gamma
         }
 
@@ -599,12 +608,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSceneButton()
     }
 
-    if (tube && promptForm && secondSection) {
+    if (tube && promptForm) {
         tube.addEventListener('click', () => {
             openTubeForm()
         })
 
-        secondSection.addEventListener('click', (event) => {
+        document.addEventListener('click', (event) => {
             if (promptForm.hidden) {
                 return
             }

@@ -459,7 +459,7 @@ h1 {
 }
 
 .tube-form {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: calc(50% + 24%);
     display: flex;
@@ -472,7 +472,7 @@ h1 {
     background: rgba(10, 10, 10, 0.92);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
     transform: translateY(-50%);
-    z-index: 2;
+    z-index: 20;
 }
 
 .tube-form[hidden] {
