@@ -43,8 +43,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
-    const isTiltLeft = (gamma) => gamma <= -10
-    const isTiltRight = (gamma) => gamma >= 10
+    const isTiltLeft = (axisValue) => axisValue <= -10
+    const isTiltRight = (axisValue) => axisValue >= 10
+    const getScreenAngle = () => {
+        if (screen.orientation && typeof screen.orientation.angle === 'number') {
+            return screen.orientation.angle
+        }
+
+        if (typeof window.orientation === 'number') {
+            return window.orientation
+        }
+
+        return 0
+    }
 
     const vectorPathData = 'M1244.99 0.929688H230.593C103.753 0.929688 0.929688 103.761 0.929688 230.61C0.929688 357.46 103.753 460.291 230.593 460.291H757.956C875.135 460.291 935.5 556.808 935.5 674C911.5 787 841.234 845.676 757.956 850.5H706C575.005 850.5 501 900.86 501 1031.87V1036.5'
     const vectorViewBox = {
@@ -199,12 +210,32 @@ document.addEventListener('DOMContentLoaded', () => {
         renderThirdTube()
     }
 
-    const handleDeviceOrientation = (event) => {
+    const getTiltAxisValue = (event) => {
         const gamma = typeof event.gamma === 'number' ? event.gamma : 0
+        const beta = typeof event.beta === 'number' ? event.beta : 0
+        const angle = ((getScreenAngle() % 360) + 360) % 360
 
-        if (isTiltLeft(gamma)) {
+        if (angle === 90) {
+            return beta
+        }
+
+        if (angle === 270) {
+            return -beta
+        }
+
+        if (angle === 180) {
+            return -gamma
+        }
+
+        return gamma
+    }
+
+    const handleDeviceOrientation = (event) => {
+        const axisValue = getTiltAxisValue(event)
+
+        if (isTiltLeft(axisValue)) {
             tiltState.progress = 1
-        } else if (isTiltRight(gamma)) {
+        } else if (isTiltRight(axisValue)) {
             tiltState.progress = -1
         } else {
             tiltState.progress = 0
@@ -220,6 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                 const permission = await window.DeviceOrientationEvent.requestPermission()
                 if (permission !== 'granted') {
+                    return
+                }
+            }
+
+            if (typeof window.DeviceMotionEvent !== 'undefined'
+                && typeof window.DeviceMotionEvent.requestPermission === 'function') {
+                const motionPermission = await window.DeviceMotionEvent.requestPermission()
+                if (motionPermission !== 'granted') {
                     return
                 }
             }
