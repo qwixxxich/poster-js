@@ -1,38 +1,95 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const promptForm = document.getElementById('prompt-form');
+    const tube = document.getElementById('tube');
+    const tubeOverlay = document.getElementById('tube-overlay');
+    const promptForm = document.getElementById('tube-form');
     const promptInput = document.getElementById('prompt-input');
     const statusEl = document.getElementById('status');
-    const resultImage = document.getElementById('result-image');
     const firstSection = document.getElementById('first');
+    const secondSection = document.getElementById('second');
     const sceneButton = document.getElementById('scene-button');
     const sceneButtonImage = document.getElementById('scene-button-image');
+    const promptSubmit = document.getElementById('prompt-submit');
+    const sectionText = document.getElementById('section1-text');
     const fruits = Array.from(document.querySelectorAll('.fruit'));
     const selectedFruits = new Set();
     let sceneButtonPressed = false;
+    let tubeFlyAwayTimeoutId = null;
+
+    if (sectionText) {
+        const rawText = sectionText.dataset.text || '';
+        const words = rawText.trim().split(' ').filter(Boolean);
+
+        sectionText.replaceChildren();
+
+        words.forEach((word, index) => {
+            const wordEl = document.createElement('span');
+            wordEl.className = 'word';
+            wordEl.textContent = word;
+            sectionText.appendChild(wordEl);
+
+            window.setTimeout(() => {
+                wordEl.classList.add('is-visible');
+            }, 200 * index);
+        });
+    }
 
     const setStatus = (message) => {
-        statusEl.textContent = message;
+        if (statusEl) {
+            statusEl.textContent = message;
+        }
     };
 
-    const renderImageFromData = (data) => {
+    const getImageSourceFromData = (data) => {
         const imageUrl = data?.image_url || data?.url || data?.image;
         const imageBase64 = data?.image_base64 || data?.b64 || data?.base64;
 
         if (imageUrl && typeof imageUrl === 'string') {
-            resultImage.src = imageUrl;
-            resultImage.hidden = false;
-            return true;
+            return imageUrl;
         }
 
         if (imageBase64 && typeof imageBase64 === 'string') {
-            resultImage.src = imageBase64.startsWith('data:image')
+            return imageBase64.startsWith('data:image')
                 ? imageBase64
                 : `data:image/png;base64,${imageBase64}`;
-            resultImage.hidden = false;
-            return true;
         }
 
-        return false;
+        return null;
+    };
+
+    const openTubeForm = () => {
+        if (!promptForm || !tube) {
+            return;
+        }
+
+        promptForm.hidden = false;
+        tube.setAttribute('aria-expanded', 'true');
+        promptInput?.focus();
+    };
+
+    const closeTubeForm = () => {
+        if (!promptForm || !tube) {
+            return;
+        }
+
+        promptForm.hidden = true;
+        tube.setAttribute('aria-expanded', 'false');
+    };
+
+    const scheduleTubeFlyAway = () => {
+        if (!tube) {
+            return;
+        }
+
+        if (tubeFlyAwayTimeoutId) {
+            window.clearTimeout(tubeFlyAwayTimeoutId);
+        }
+
+        tube.classList.remove('is-flying');
+        void tube.offsetWidth;
+
+        tubeFlyAwayTimeoutId = window.setTimeout(() => {
+            tube.classList.add('is-flying');
+        }, 5000);
     };
 
     if (fruits.length && firstSection) {
@@ -194,9 +251,38 @@ document.addEventListener('DOMContentLoaded', () => {
 
             selectedFruits.clear();
             updateSceneButton();
+
+            window.setTimeout(() => {
+                secondSection?.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            }, 1000);
         });
 
         updateSceneButton();
+    }
+
+    if (tube && promptForm && secondSection) {
+        tube.addEventListener('click', () => {
+            openTubeForm();
+        });
+
+        secondSection.addEventListener('click', (event) => {
+            if (promptForm.hidden) {
+                return;
+            }
+
+            if (promptForm.contains(event.target) || tube.contains(event.target)) {
+                return;
+            }
+
+            closeTubeForm();
+        });
+    }
+
+    if (!promptForm || !promptInput || !tube || !tubeOverlay || !promptSubmit) {
+        return;
     }
 
     promptForm.addEventListener('submit', async (event) => {
@@ -208,8 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        resultImage.hidden = true;
         setStatus('Генерация...');
+        promptSubmit.disabled = true;
 
         try {
             const response = await fetch('http://72.56.18.58:8000/generate', {
@@ -228,21 +314,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (contentType.includes('application/json')) {
                 const data = await response.json();
-                const isRendered = renderImageFromData(data);
-                if (!isRendered) {
+                const imageSource = getImageSourceFromData(data);
+                if (!imageSource) {
                     throw new Error('JSON без поля изображения');
                 }
+                tubeOverlay.style.backgroundImage = `url(${JSON.stringify(imageSource)})`;
             } else if (contentType.startsWith('image/')) {
                 const imageBlob = await response.blob();
-                resultImage.src = URL.createObjectURL(imageBlob);
-                resultImage.hidden = false;
+                const imageUrl = URL.createObjectURL(imageBlob);
+                tubeOverlay.style.backgroundImage = `url(${JSON.stringify(imageUrl)})`;
             } else {
                 throw new Error(`Неизвестный content-type: ${contentType}`);
             }
 
             setStatus('Готово.');
+            closeTubeForm();
+            scheduleTubeFlyAway();
         } catch (error) {
             setStatus(`Ошибка: ${error.message}`);
+        } finally {
+            promptSubmit.disabled = false;
         }
     });
 });
