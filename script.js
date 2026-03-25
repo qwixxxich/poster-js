@@ -6,14 +6,286 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusEl = document.getElementById('status');
     const firstSection = document.getElementById('first');
     const secondSection = document.getElementById('second');
+    const thirdSection = document.getElementById('third');
     const sceneButton = document.getElementById('scene-button');
     const sceneButtonImage = document.getElementById('scene-button-image');
     const promptSubmit = document.getElementById('prompt-submit');
     const sectionText = document.getElementById('section1-text');
+    const section2Text = document.getElementById('section2-text');
+    const section3Tube = document.getElementById('section3-tube');
+    const vectorLine = document.getElementById('VectorLine');
     const fruits = Array.from(document.querySelectorAll('.fruit'));
     const selectedFruits = new Set();
     let sceneButtonPressed = false;
     let tubeFlyAwayTimeoutId = null;
+    let thirdTubeActivated = false;
+    let generatedTubeImage = null;
+    let vectorPathElement = null;
+    let vectorPathLength = 0;
+
+    const inputState = {
+        progress: 0,
+    };
+    const tiltState = {
+        progress: 0,
+        enabled: false,
+    };
+    const thirdTubeState = {
+        progress: 0,
+        active: false,
+        falling: false,
+        hidden: false,
+        x: 0,
+        y: 0,
+        angle: 0,
+        width: 140,
+        fallVelocity: 0,
+    };
+
+    const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+    const isTiltLeft = (gamma) => gamma <= -10;
+    const isTiltRight = (gamma) => gamma >= 10;
+
+    const vectorPathData = 'M1244.99 0.929688H230.593C103.753 0.929688 0.929688 103.761 0.929688 230.61C0.929688 357.46 103.753 460.291 230.593 460.291H757.956C875.135 460.291 935.5 556.808 935.5 674C911.5 787 841.234 845.676 757.956 850.5H706C575.005 850.5 501 900.86 501 1031.87V1036.5';
+    const vectorViewBox = {
+        width: 1217,
+        height: 1037,
+    };
+
+    const ensureVectorPath = () => {
+        if (!thirdSection || !vectorLine || vectorPathElement) {
+            return;
+        }
+
+        const svgNamespace = 'http://www.w3.org/2000/svg';
+        const hiddenSvg = document.createElementNS(svgNamespace, 'svg');
+        const path = document.createElementNS(svgNamespace, 'path');
+
+        hiddenSvg.setAttribute('viewBox', `0 0 ${vectorViewBox.width} ${vectorViewBox.height}`);
+        hiddenSvg.setAttribute('aria-hidden', 'true');
+        hiddenSvg.style.position = 'absolute';
+        hiddenSvg.style.width = '0';
+        hiddenSvg.style.height = '0';
+        hiddenSvg.style.overflow = 'hidden';
+        hiddenSvg.style.pointerEvents = 'none';
+
+        path.setAttribute('d', vectorPathData);
+        path.setAttribute('fill', 'none');
+
+        hiddenSvg.appendChild(path);
+        thirdSection.appendChild(hiddenSvg);
+
+        vectorPathElement = path;
+        vectorPathLength = path.getTotalLength();
+    };
+
+    const applyGeneratedTubeImage = (imageSource) => {
+        generatedTubeImage = imageSource;
+
+        if (tubeOverlay) {
+            tubeOverlay.style.backgroundImage = `url(${JSON.stringify(imageSource)})`;
+        }
+
+        if (section3Tube) {
+            section3Tube.style.backgroundImage = `url(${JSON.stringify(imageSource)})`;
+        }
+    };
+
+    const getVectorPointAtProgress = (progress) => {
+        if (!vectorPathElement || !vectorLine || !thirdSection) {
+            return null;
+        }
+
+        const clampedProgress = clamp(progress, 0, 1);
+        const currentLength = vectorPathLength * clampedProgress;
+        const nextLength = Math.min(vectorPathLength, currentLength + 1);
+        const currentPoint = vectorPathElement.getPointAtLength(currentLength);
+        const nextPoint = vectorPathElement.getPointAtLength(nextLength);
+        const lineRect = vectorLine.getBoundingClientRect();
+        const thirdRect = thirdSection.getBoundingClientRect();
+        const scaleX = lineRect.width / vectorViewBox.width;
+        const scaleY = lineRect.height / vectorViewBox.height;
+
+        return {
+            x: lineRect.left - thirdRect.left + currentPoint.x * scaleX,
+            y: lineRect.top - thirdRect.top + currentPoint.y * scaleY,
+            angle: Math.atan2((nextPoint.y - currentPoint.y) * scaleY, (nextPoint.x - currentPoint.x) * scaleX) * (180 / Math.PI),
+            width: clamp(lineRect.width * 0.18, 90, 230),
+        };
+    };
+
+    const renderThirdTube = () => {
+        if (!section3Tube) {
+            return;
+        }
+
+        if (thirdTubeState.falling) {
+            section3Tube.style.left = `${thirdTubeState.x}px`;
+            section3Tube.style.top = `${thirdTubeState.y}px`;
+            section3Tube.style.width = `${thirdTubeState.width}px`;
+            section3Tube.style.setProperty('--tube-angle', `${thirdTubeState.angle}deg`);
+            return;
+        }
+
+        const point = getVectorPointAtProgress(thirdTubeState.progress);
+        if (!point) {
+            return;
+        }
+
+        thirdTubeState.x = point.x;
+        thirdTubeState.y = point.y;
+        thirdTubeState.angle = point.angle;
+        thirdTubeState.width = point.width;
+        section3Tube.style.left = `${point.x}px`;
+        section3Tube.style.top = `${point.y}px`;
+        section3Tube.style.width = `${point.width}px`;
+        section3Tube.style.setProperty('--tube-angle', `${point.angle}deg`);
+    };
+
+    const syncScrollToTube = () => {
+        if (!thirdSection || !thirdTubeState.active || thirdTubeState.falling || thirdTubeState.hidden) {
+            return;
+        }
+
+        const thirdSectionTop = thirdSection.getBoundingClientRect().top + window.scrollY;
+        const tubeDocumentY = thirdSectionTop + thirdTubeState.y;
+        const viewportOffset = window.innerHeight * 0.38;
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+        const targetScroll = clamp(tubeDocumentY - viewportOffset, 0, maxScroll);
+        const currentScroll = window.scrollY;
+        const nextScroll = currentScroll + (targetScroll - currentScroll) * 0.12;
+
+        window.scrollTo(0, nextScroll);
+    };
+
+    const startTubeFall = () => {
+        if (!section3Tube || thirdTubeState.falling || thirdTubeState.hidden) {
+            return;
+        }
+
+        thirdTubeState.falling = true;
+        thirdTubeState.fallVelocity = 3.5;
+        inputState.progress = 0;
+    };
+
+    const activateThirdTube = () => {
+        if (thirdTubeActivated || !section3Tube) {
+            return;
+        }
+
+        ensureVectorPath();
+        thirdTubeActivated = true;
+        thirdTubeState.active = true;
+        thirdTubeState.falling = false;
+        thirdTubeState.hidden = false;
+        section3Tube.classList.add('is-active');
+        section3Tube.classList.remove('is-hidden');
+        renderThirdTube();
+    };
+
+    const handleDeviceOrientation = (event) => {
+        const gamma = typeof event.gamma === 'number' ? event.gamma : 0;
+
+        if (isTiltLeft(gamma)) {
+            tiltState.progress = 1;
+        } else if (isTiltRight(gamma)) {
+            tiltState.progress = -1;
+        } else {
+            tiltState.progress = 0;
+        }
+    };
+
+    const enableTiltControls = async () => {
+        if (tiltState.enabled || typeof window.DeviceOrientationEvent === 'undefined') {
+            return;
+        }
+
+        try {
+            if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                const permission = await window.DeviceOrientationEvent.requestPermission();
+                if (permission !== 'granted') {
+                    return;
+                }
+            }
+
+            window.addEventListener('deviceorientation', handleDeviceOrientation);
+            tiltState.enabled = true;
+        } catch (error) {
+            console.error('Failed to enable tilt controls:', error);
+        }
+    };
+
+    const updateThirdTubeMovement = () => {
+        if (thirdTubeState.active) {
+            if (thirdTubeState.falling) {
+                const hideThreshold = thirdSection ? thirdSection.clientHeight * 0.9 : Number.POSITIVE_INFINITY;
+
+                thirdTubeState.y += thirdTubeState.fallVelocity;
+                thirdTubeState.fallVelocity += 0.22;
+                thirdTubeState.angle += 2.5;
+                renderThirdTube();
+
+                if (thirdTubeState.y >= hideThreshold) {
+                    thirdTubeState.hidden = true;
+                    thirdTubeState.active = false;
+                    section3Tube.classList.add('is-hidden');
+                }
+            } else {
+                const progressDelta = clamp(inputState.progress + tiltState.progress, -1, 1) * 0.0022;
+
+                thirdTubeState.progress = clamp(thirdTubeState.progress + progressDelta, 0, 1);
+                renderThirdTube();
+                syncScrollToTube();
+
+                if (thirdTubeState.progress >= 1) {
+                    startTubeFall();
+                }
+            }
+        }
+
+        window.requestAnimationFrame(updateThirdTubeMovement);
+    };
+
+    const setKeyboardInput = (key, isPressed) => {
+        const normalizedKey = key.toLowerCase();
+        const value = isPressed ? 1 : 0;
+
+        if (normalizedKey === 'a' || normalizedKey === 'ф') {
+            inputState.progress = value;
+        } else if (normalizedKey === 'd' || normalizedKey === 'в') {
+            inputState.progress = -value;
+        }
+    };
+
+    window.addEventListener('keydown', (event) => {
+        setKeyboardInput(event.key, true);
+    });
+
+    window.addEventListener('keyup', (event) => {
+        setKeyboardInput(event.key, false);
+    });
+
+    if (typeof window.DeviceOrientationEvent !== 'undefined'
+        && typeof window.DeviceOrientationEvent.requestPermission !== 'function') {
+        enableTiltControls();
+    }
+
+    thirdSection?.addEventListener('touchstart', () => {
+        enableTiltControls();
+    }, { once: true, passive: true });
+
+    thirdSection?.addEventListener('click', () => {
+        enableTiltControls();
+    }, { once: true });
+
+    window.addEventListener('resize', () => {
+        if (thirdTubeState.active) {
+            renderThirdTube();
+        }
+    });
+
+    updateThirdTubeMovement();
+    ensureVectorPath();
 
     if (sectionText) {
         const rawText = sectionText.dataset.text || '';
@@ -86,11 +358,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
         tube.classList.remove('is-flying');
         void tube.offsetWidth;
+        section2Text?.classList.remove('is-visible');
 
         tubeFlyAwayTimeoutId = window.setTimeout(() => {
+            section2Text?.classList.remove('is-visible');
+            void section2Text?.offsetWidth;
+            section2Text?.classList.add('is-visible');
             tube.classList.add('is-flying');
         }, 5000);
     };
+
+    tube?.addEventListener('animationend', () => {
+        if (!tube.classList.contains('is-flying')) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            thirdSection?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start',
+            });
+            activateThirdTube();
+        }, 2000);
+    });
 
     if (fruits.length && firstSection) {
         const fruitStates = [];
@@ -318,11 +608,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!imageSource) {
                     throw new Error('JSON без поля изображения');
                 }
-                tubeOverlay.style.backgroundImage = `url(${JSON.stringify(imageSource)})`;
+                applyGeneratedTubeImage(imageSource);
             } else if (contentType.startsWith('image/')) {
                 const imageBlob = await response.blob();
                 const imageUrl = URL.createObjectURL(imageBlob);
-                tubeOverlay.style.backgroundImage = `url(${JSON.stringify(imageUrl)})`;
+                applyGeneratedTubeImage(imageUrl);
             } else {
                 throw new Error(`Неизвестный content-type: ${contentType}`);
             }
