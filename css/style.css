@@ -335,6 +335,10 @@ h1 {
     pointer-events: none;
 }
 
+#section3-tube.is-fallback {
+    background: #fff;
+}
+
 #section3-tube.is-active {
     opacity: 1;
 }
@@ -391,6 +395,10 @@ h1 {
     -webkit-mask: url("../assets/tube.svg") left center / auto 100% no-repeat;
     mask: url("../assets/tube.svg") left center / auto 100% no-repeat;
     pointer-events: none;
+}
+
+#tube-overlay.is-fallback {
+    background: #fff;
 }
 
 #section2-text {
