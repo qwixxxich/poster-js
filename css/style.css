@@ -49,6 +49,12 @@ body {
     opacity: 0.88;
 }
 
+.section-info-toggle--third {
+    left: 5%;
+    top: 10%;
+    right: auto;
+}
+
 .section-tooltip {
     position: absolute;
     top: clamp(74px, 8vw, 112px);
@@ -64,6 +70,12 @@ body {
 
 .section-tooltip[hidden] {
     display: none !important;
+}
+
+.section-tooltip--third {
+    left: 5%;
+    top: calc(10% + clamp(52px, 5.2vw, 76px));
+    right: auto;
 }
 
 .section-tooltip__text {
@@ -1008,6 +1020,12 @@ h1 {
         width: 40px;
     }
 
+    .section-info-toggle--third {
+        left: 5%;
+        top: 10%;
+        right: auto;
+    }
+
     .section-tooltip {
         top: 64px;
         right: 14px;
@@ -1024,6 +1042,12 @@ h1 {
 
     .section-tooltip__close {
         width: 23px;
+    }
+
+    .section-tooltip--third {
+        left: 5%;
+        top: calc(10% + 48px);
+        right: auto;
     }
 
     #second {
