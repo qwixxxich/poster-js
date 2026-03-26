@@ -1087,6 +1087,7 @@ h1 {
     }
 
     #section2-text {
+        left: calc((50% * var(--x-k)) + 10%);
         top: 42%;
         width: min(calc(250px * var(--size-k)), 82vw);
         font-size: clamp(8px, 2.5vw, 22px);
