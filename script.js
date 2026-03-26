@@ -14,14 +14,24 @@ document.addEventListener('DOMContentLoaded', () => {
     const section2Text = document.getElementById('section2-text')
     const section3Tube = document.getElementById('section3-tube')
     const vectorLine = document.getElementById('VectorLine')
+    const thirdTubeRocketStage = document.getElementById('section3-tube-rocket-stage')
+    const thirdTubeRocketTrigger = document.getElementById('section3-tube-rocket-trigger')
+    const transitionSection = document.getElementById('transition')
+    const spaceSection = document.getElementById('space')
+    const spaceTube = document.getElementById('space-tube')
+    const spaceTubeImage = document.getElementById('space-tube-image')
     const fruits = Array.from(document.querySelectorAll('.fruit'))
     const selectedFruits = new Set()
     let sceneButtonPressed = false
     let tubeFlyAwayTimeoutId = null
     let thirdTubeActivated = false
     let generatedTubeImage = null
+    let postThirdTransitionStarted = false
+    let scrollAnimationFrameId = null
+    let spaceFlightAnimationFrameId = null
     let vectorPathElement = null
     let vectorPathLength = 0
+    const DISABLE_GENERATION = true
 
     const inputState = {
         progress: 0,
@@ -41,8 +51,23 @@ document.addEventListener('DOMContentLoaded', () => {
         width: 140,
         fallVelocity: 0,
     }
+    const spaceFlightState = {
+        active: false,
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        rotation: -24,
+        spin: 0.12,
+        lastTimestamp: 0,
+    }
 
     const clamp = (value, min, max) => Math.min(Math.max(value, min), max)
+    const easeOutQuint = (value) => 1 - ((1 - value) ** 5)
+    const thirdTubeProgressSpeed = 0.0032
+    const thirdTubeScrollFollow = 0.18
+    const thirdTubeFallStartVelocity = 6.2
+    const thirdTubeFallAcceleration = 0.42
     const isTiltLeft = (axisValue) => axisValue <= -10
     const isTiltRight = (axisValue) => axisValue >= 10
     const getScreenAngle = () => {
@@ -170,7 +195,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const syncScrollToTube = () => {
-        if (!thirdSection || !thirdTubeState.active || thirdTubeState.falling || thirdTubeState.hidden) {
+        if (!thirdSection || !thirdTubeState.active || thirdTubeState.falling || thirdTubeState.hidden || postThirdTransitionStarted) {
             return
         }
 
@@ -180,18 +205,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
         const targetScroll = clamp(tubeDocumentY - viewportOffset, 0, maxScroll)
         const currentScroll = window.scrollY
-        const nextScroll = currentScroll + (targetScroll - currentScroll) * 0.12
+        const nextScroll = currentScroll + (targetScroll - currentScroll) * thirdTubeScrollFollow
 
         window.scrollTo(0, nextScroll)
     }
 
     const startTubeFall = () => {
-        if (!section3Tube || thirdTubeState.falling || thirdTubeState.hidden) {
+        if (!section3Tube || thirdTubeState.falling || thirdTubeState.hidden || postThirdTransitionStarted) {
             return
         }
 
         thirdTubeState.falling = true
-        thirdTubeState.fallVelocity = 3.5
+        thirdTubeState.fallVelocity = thirdTubeFallStartVelocity
         inputState.progress = 0
     }
 
@@ -276,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const hideThreshold = thirdSection ? thirdSection.clientHeight * 0.9 : Number.POSITIVE_INFINITY
 
                 thirdTubeState.y += thirdTubeState.fallVelocity
-                thirdTubeState.fallVelocity += 0.22
+                thirdTubeState.fallVelocity += thirdTubeFallAcceleration
                 thirdTubeState.angle += 2.5
                 renderThirdTube()
 
@@ -286,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     section3Tube.classList.add('is-hidden')
                 }
             } else {
-                const progressDelta = clamp(inputState.progress + tiltState.progress, -1, 1) * 0.0022
+                const progressDelta = clamp(inputState.progress + tiltState.progress, -1, 1) * thirdTubeProgressSpeed
 
                 thirdTubeState.progress = clamp(thirdTubeState.progress + progressDelta, 0, 1)
                 renderThirdTube()
@@ -300,6 +325,180 @@ document.addEventListener('DOMContentLoaded', () => {
 
         window.requestAnimationFrame(updateThirdTubeMovement)
     }
+
+    const revealPostThirdSections = () => {
+        if (transitionSection) {
+            transitionSection.hidden = false
+            transitionSection.setAttribute('aria-hidden', 'false')
+        }
+
+        if (spaceSection) {
+            spaceSection.hidden = false
+            spaceSection.setAttribute('aria-hidden', 'false')
+        }
+
+        window.requestAnimationFrame(() => {
+            transitionSection?.classList.add('is-revealed')
+            spaceSection?.classList.add('is-revealed')
+        })
+    }
+
+    const animateWindowScrollTo = (targetY, duration = 420) => new Promise((resolve) => {
+        const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+        const destination = clamp(targetY, 0, maxScroll)
+        const startY = window.scrollY
+        const distance = destination - startY
+
+        if (Math.abs(distance) <= 1) {
+            window.scrollTo(0, destination)
+            resolve()
+            return
+        }
+
+        if (scrollAnimationFrameId) {
+            window.cancelAnimationFrame(scrollAnimationFrameId)
+        }
+
+        const startTime = window.performance.now()
+
+        const step = (timestamp) => {
+            const progress = clamp((timestamp - startTime) / duration, 0, 1)
+            const easedProgress = easeOutQuint(progress)
+            window.scrollTo(0, startY + distance * easedProgress)
+
+            if (progress < 1) {
+                scrollAnimationFrameId = window.requestAnimationFrame(step)
+                return
+            }
+
+            scrollAnimationFrameId = null
+            resolve()
+        }
+
+        scrollAnimationFrameId = window.requestAnimationFrame(step)
+    })
+
+    const setSpaceTubePosition = (x, y, rotation) => {
+        if (!spaceTube) {
+            return
+        }
+
+        spaceTube.style.setProperty('--space-x', `${x}px`)
+        spaceTube.style.setProperty('--space-y', `${y}px`)
+        spaceTube.style.setProperty('--space-rotate', `${rotation}deg`)
+    }
+
+    const updateSpaceFlight = (timestamp) => {
+        if (!spaceFlightState.active || !spaceSection || !spaceTube) {
+            return
+        }
+
+        if (!spaceFlightState.lastTimestamp) {
+            spaceFlightState.lastTimestamp = timestamp
+        }
+
+        const delta = Math.min(32, timestamp - spaceFlightState.lastTimestamp)
+        const deltaFactor = delta / 16.6667
+        const tubeWidth = spaceTube.offsetWidth
+        const tubeHeight = spaceTube.offsetHeight
+        const minX = -tubeWidth * 0.18
+        const maxX = spaceSection.clientWidth - tubeWidth * 0.82
+        const minY = 0
+        const maxY = spaceSection.clientHeight - tubeHeight * 0.74
+
+        spaceFlightState.lastTimestamp = timestamp
+        spaceFlightState.x += spaceFlightState.vx * deltaFactor
+        spaceFlightState.y += spaceFlightState.vy * deltaFactor
+        spaceFlightState.rotation += spaceFlightState.spin * deltaFactor
+
+        if (spaceFlightState.x <= minX || spaceFlightState.x >= maxX) {
+            spaceFlightState.vx *= -1
+            spaceFlightState.x = clamp(spaceFlightState.x, minX, maxX)
+        }
+
+        if (spaceFlightState.y <= minY || spaceFlightState.y >= maxY) {
+            spaceFlightState.vy *= -1
+            spaceFlightState.y = clamp(spaceFlightState.y, minY, maxY)
+        }
+
+        setSpaceTubePosition(spaceFlightState.x, spaceFlightState.y, spaceFlightState.rotation)
+        spaceFlightAnimationFrameId = window.requestAnimationFrame(updateSpaceFlight)
+    }
+
+    const startSpaceFlight = () => {
+        if (!spaceSection || !spaceTube || !spaceTubeImage) {
+            return
+        }
+
+        if (spaceFlightAnimationFrameId) {
+            window.cancelAnimationFrame(spaceFlightAnimationFrameId)
+            spaceFlightAnimationFrameId = null
+        }
+
+        const initialX = spaceSection.clientWidth * 0.48
+        const initialY = spaceSection.clientHeight * 0.2
+        spaceFlightState.active = false
+        spaceFlightState.lastTimestamp = 0
+        spaceFlightState.x = initialX
+        spaceFlightState.y = initialY
+        spaceFlightState.vx = Math.max(0.48, spaceSection.clientWidth * 0.00055)
+        spaceFlightState.vy = Math.max(0.18, spaceSection.clientHeight * 0.00022)
+        spaceFlightState.rotation = -18
+        spaceFlightState.spin = 0.06
+
+        setSpaceTubePosition(initialX, initialY, spaceFlightState.rotation)
+        spaceTube.classList.add('is-visible')
+        spaceTubeImage.classList.remove('is-floating')
+        spaceTubeImage.classList.remove('is-launching')
+        void spaceTubeImage.offsetWidth
+        spaceTubeImage.classList.add('is-launching')
+
+        const handleLaunchEnd = () => {
+            spaceFlightState.active = true
+            spaceFlightState.lastTimestamp = 0
+            spaceTubeImage.classList.remove('is-launching')
+            spaceTubeImage.classList.add('is-floating')
+            spaceFlightAnimationFrameId = window.requestAnimationFrame(updateSpaceFlight)
+        }
+
+        spaceTubeImage.addEventListener('animationend', handleLaunchEnd, { once: true })
+    }
+
+    const startTubeRocketTransition = () => {
+        if (postThirdTransitionStarted || !thirdTubeRocketStage || !spaceSection) {
+            return
+        }
+
+        postThirdTransitionStarted = true
+        thirdTubeRocketTrigger?.setAttribute('aria-disabled', 'true')
+
+        if (thirdTubeRocketTrigger) {
+            thirdTubeRocketTrigger.disabled = true
+        }
+
+        thirdTubeState.active = false
+        thirdTubeState.falling = false
+        thirdTubeState.hidden = true
+        section3Tube?.classList.add('is-hidden')
+        thirdTubeRocketStage.classList.add('is-falling')
+        revealPostThirdSections()
+
+        window.setTimeout(() => {
+            thirdTubeRocketStage.classList.add('is-hidden')
+        }, 820)
+
+        window.requestAnimationFrame(() => {
+            window.requestAnimationFrame(() => {
+                window.setTimeout(() => {
+                    const targetTop = spaceSection.getBoundingClientRect().top + window.scrollY
+                    startSpaceFlight()
+                    void animateWindowScrollTo(targetTop, 420)
+                }, 0)
+            })
+        })
+    }
+
+    thirdTubeRocketTrigger?.addEventListener('click', startTubeRocketTransition)
 
     const setKeyboardInput = (key, isPressed) => {
         const normalizedKey = key.toLowerCase()
@@ -336,6 +535,14 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('resize', () => {
         if (thirdTubeState.active) {
             renderThirdTube()
+        }
+
+        if (spaceFlightState.active && spaceSection && spaceTube) {
+            const maxX = Math.max(0, spaceSection.clientWidth - spaceTube.offsetWidth * 0.82)
+            const maxY = Math.max(0, spaceSection.clientHeight - spaceTube.offsetHeight * 0.74)
+            spaceFlightState.x = clamp(spaceFlightState.x, -spaceTube.offsetWidth * 0.18, maxX)
+            spaceFlightState.y = clamp(spaceFlightState.y, 0, maxY)
+            setSpaceTubePosition(spaceFlightState.x, spaceFlightState.y, spaceFlightState.rotation)
         }
     })
 
@@ -643,6 +850,10 @@ document.addEventListener('DOMContentLoaded', () => {
         promptSubmit.disabled = true
 
         try {
+            if (DISABLE_GENERATION) {
+                throw new Error('Generation is temporarily disabled')
+            }
+
             const response = await fetch('https://72.56.18.58:8443/generate', {
                 method: 'POST',
                 headers: {

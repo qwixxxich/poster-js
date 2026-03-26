@@ -1,9 +1,9 @@
-<svg width="440" height="2743" viewBox="0 0 440 2743" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M440 1320H0V2743H440V1320Z" fill="#999999"/>
-<path d="M440 2523H0V2743H440V2523Z" fill="#6B6B6B"/>
-<path d="M274 1320V2523" stroke="white" stroke-width="3" stroke-miterlimit="10"/>
-<path d="M166 1318V2523" stroke="white" stroke-width="3" stroke-miterlimit="10"/>
-<path d="M440 0H0V1320H440V0Z" fill="#F2F3F7"/>
-<path d="M274.43 0V1320" stroke="#AEB5C3" stroke-width="3" stroke-miterlimit="10"/>
-<path d="M165.57 0V1320" stroke="#AEB5C3" stroke-width="3" stroke-miterlimit="10"/>
+<svg width="440" height="1281" viewBox="0 0 440 1281" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect y="377" width="440" height="684" fill="#999999"/>
+<rect y="1061" width="440" height="220" fill="#6B6B6B"/>
+<path d="M274 377L274 1067" stroke="white" stroke-width="3" stroke-miterlimit="10"/>
+<path d="M166 377L166 1061" stroke="white" stroke-width="3" stroke-miterlimit="10"/>
+<rect width="440" height="377" fill="#F2F3F7"/>
+<path d="M274 0L274 377" stroke="#AEB5C3" stroke-width="3" stroke-miterlimit="10"/>
+<path d="M166 0L166 377" stroke="#AEB5C3" stroke-width="3" stroke-miterlimit="10"/>
 </svg>
