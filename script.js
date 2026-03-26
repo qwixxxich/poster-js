@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const section2Text = document.getElementById('section2-text')
     const section3Tube = document.getElementById('section3-tube')
     const section3Tubus = document.getElementById('section3-tubus')
+    const section3StarsLayer = document.getElementById('section3-stars-layer')
     const vectorLine = document.getElementById('VectorLine')
     const thirdTubeRocketStage = document.getElementById('section3-tube-rocket-stage')
     const thirdTubeRocketTrigger = document.getElementById('section3-tube-rocket-trigger')
@@ -21,6 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const spaceSection = document.getElementById('space')
     const spaceTube = document.getElementById('space-tube')
     const spaceTubeImage = document.getElementById('space-tube-image')
+    const infoToggles = Array.from(document.querySelectorAll('.section-info-toggle'))
+    const infoTooltips = Array.from(document.querySelectorAll('.section-tooltip'))
     const fruits = Array.from(document.querySelectorAll('.fruit'))
     const selectedFruits = new Set()
     let sceneButtonPressed = false
@@ -32,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let spaceFlightAnimationFrameId = null
     let vectorPathElement = null
     let vectorPathLength = 0
-    const DISABLE_GENERATION = true
+    const DISABLE_GENERATION = false
 
     const inputState = {
         progress: 0,
@@ -69,6 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const thirdTubeScrollFollow = 0.18
     const thirdTubeFallStartVelocity = 6.2
     const thirdTubeFallAcceleration = 0.42
+    const section3StarCount = 70
+    const section3StarAltCount = 70
     const isTiltLeft = (axisValue) => axisValue <= -10
     const isTiltRight = (axisValue) => axisValue >= 10
     const getScreenAngle = () => {
@@ -114,6 +119,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
         vectorPathElement = path
         vectorPathLength = path.getTotalLength()
+    }
+
+    const populateSection3Stars = () => {
+        if (!section3StarsLayer) {
+            return
+        }
+
+        section3StarsLayer.replaceChildren()
+
+        const appendStar = (source) => {
+            const star = document.createElement('img')
+            const left = `${Math.random() * 100}%`
+            const top = `${Math.random() * 100}%`
+            const rotation = `${Math.random() * 360}deg`
+            const size = `${0.9 + Math.random() * 1.9}%`
+
+            star.className = 'section3-star'
+            star.src = source
+            star.alt = ''
+            star.setAttribute('aria-hidden', 'true')
+            star.style.left = left
+            star.style.top = top
+            star.style.setProperty('--star-rotation', rotation)
+            star.style.setProperty('--star-size', size)
+            section3StarsLayer.appendChild(star)
+        }
+
+        for (let index = 0; index < section3StarCount; index += 1) {
+            appendStar('assets/star.svg')
+        }
+
+        for (let index = 0; index < section3StarAltCount; index += 1) {
+            appendStar('assets/star1.svg')
+        }
     }
 
     const applyGeneratedTubeImage = (imageSource) => {
@@ -553,6 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateThirdTubeMovement()
     ensureVectorPath()
+    populateSection3Stars()
 
     if (sectionText) {
         const rawText = sectionText.dataset.text || ''
@@ -571,6 +611,68 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 200 * index)
         })
     }
+
+    const setTooltipState = (tooltip, isOpen) => {
+        if (!tooltip?.id) {
+            return
+        }
+
+        const toggle = document.querySelector(`[data-tooltip-target="${tooltip.id}"]`)
+        tooltip.hidden = !isOpen
+        toggle?.setAttribute('aria-expanded', isOpen ? 'true' : 'false')
+    }
+
+    const closeAllTooltips = () => {
+        infoTooltips.forEach((tooltip) => {
+            setTooltipState(tooltip, false)
+        })
+    }
+
+    infoToggles.forEach((toggle) => {
+        toggle.addEventListener('click', (event) => {
+            event.stopPropagation()
+
+            const tooltipId = toggle.dataset.tooltipTarget
+            const tooltip = tooltipId ? document.getElementById(tooltipId) : null
+            if (!tooltip) {
+                return
+            }
+
+            const shouldOpen = tooltip.hidden
+            closeAllTooltips()
+            setTooltipState(tooltip, shouldOpen)
+        })
+    })
+
+    document.querySelectorAll('[data-tooltip-close]').forEach((closeButton) => {
+        closeButton.addEventListener('click', (event) => {
+            event.stopPropagation()
+
+            const tooltip = closeButton.closest('.section-tooltip')
+            if (!tooltip) {
+                return
+            }
+
+            setTooltipState(tooltip, false)
+        })
+    })
+
+    document.addEventListener('click', (event) => {
+        const target = event.target
+
+        if (target instanceof Element
+            && (target.closest('.section-tooltip') || target.closest('.section-info-toggle'))) {
+            return
+        }
+
+        closeAllTooltips()
+    })
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeAllTooltips()
+        }
+    })
 
     const setStatus = (message) => {
         if (statusEl) {

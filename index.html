@@ -8,6 +8,20 @@
 </head>
 <body>
     <div class="section" id="first">
+        <button
+            class="section-info-toggle"
+            type="button"
+            aria-label="Показать подсказку для первой секции"
+            aria-expanded="false"
+            aria-controls="section1-tooltip"
+            data-tooltip-target="section1-tooltip"
+        >
+            <img src="assets/info.svg" alt="" aria-hidden="true">
+        </button>
+        <div class="section-tooltip" id="section1-tooltip" hidden>
+            <p class="section-tooltip__text">Нужно собирать фрукты и овощи для тюбика.</p>
+            <button class="section-tooltip__close" type="button" aria-label="Закрыть подсказку" data-tooltip-close></button>
+        </div>
         <div id="fruits-layer" aria-label="Flying fruits">
             <img class="fruit" src="assets/fruit/f1.png" alt="Fruit 1">
             <img class="fruit" src="assets/fruit/f2.png" alt="Fruit 2">
@@ -27,6 +41,20 @@
         </button>
     </div>
     <div class="section" id="second">
+        <button
+            class="section-info-toggle"
+            type="button"
+            aria-label="Показать подсказку для второй секции"
+            aria-expanded="false"
+            aria-controls="section2-tooltip"
+            data-tooltip-target="section2-tooltip"
+        >
+            <img src="assets/info.svg" alt="" aria-hidden="true">
+        </button>
+        <div class="section-tooltip" id="section2-tooltip" hidden>
+            <p class="section-tooltip__text">Нужно сгенерировать дизайн для тюбика, чтобы отправить его на переработку.</p>
+            <button class="section-tooltip__close" type="button" aria-label="Закрыть подсказку" data-tooltip-close></button>
+        </div>
         <img id="section2-bg" src="assets/section2.svg" alt="" aria-hidden="true">
         <div id="tube-viewport">
             <button id="tube" type="button" aria-label="Open prompt form" aria-expanded="false">
@@ -50,6 +78,7 @@
     </div>
     <div class="section" id="third">
         <div id="section3-bg" aria-hidden="true"></div>
+        <div id="section3-stars-layer" aria-hidden="true"></div>
         <p id="section3-text">Во&nbsp;время полёта на&nbsp;«Востоке-1» Гагарин употреблял мясное и&nbsp;шоколадное пюре в&nbsp;тюбиках. Этот момент стал не&nbsp;только технологическим экспериментом, но&nbsp;и доказательством того, что&nbsp;приём пищи в&nbsp;космосе возможен. Однако сразу стало очевидно, что&nbsp;подобный формат не&nbsp;подходит для&nbsp;длительных миссий: космонавты отмечали снижение аппетита, отторжение и&nbsp;психологическую усталость от&nbsp;однообразной&nbsp;еды.</p>
         <img id="section3-recycle" src="assets/recycle.svg" alt="" aria-hidden="true">
         <div id="section3-pipe-stage" aria-hidden="true">
