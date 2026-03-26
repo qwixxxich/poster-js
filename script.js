@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const sectionText = document.getElementById('section1-text')
     const section2Text = document.getElementById('section2-text')
     const section3Tube = document.getElementById('section3-tube')
+    const section3Tubus = document.getElementById('section3-tubus')
     const vectorLine = document.getElementById('VectorLine')
     const thirdTubeRocketStage = document.getElementById('section3-tube-rocket-stage')
     const thirdTubeRocketTrigger = document.getElementById('section3-tube-rocket-trigger')
@@ -474,6 +475,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (thirdTubeRocketTrigger) {
             thirdTubeRocketTrigger.disabled = true
+        }
+
+        if (section3Tubus) {
+            section3Tubus.src = 'assets/tubus1.svg'
         }
 
         thirdTubeState.active = false
